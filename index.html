@@ -358,6 +358,7 @@
 
   <script>
     const SOURCE_URL = "https://catalog.uoregon.edu/calendar/";
+    const API_URL = "/api/uo-calendar";
 
     // Fallback reflects the 2025-2026 catalog text visible on the UO page when this was built.
     // The app still tries to fetch SOURCE_URL first. If the browser blocks cross-origin access,
@@ -555,13 +556,18 @@ Second 5-Week/10-Week Final Exams: August 3 - 7
 
       try {
         if (forceFallback) throw new Error("Using bundled fallback by request.");
-        const response = await fetch(SOURCE_URL, { mode: "cors" });
+        let response = await fetch(API_URL);
+        if (!response.ok) {
+          // This direct fetch may be blocked by CORS in a browser, but it is useful
+          // while testing in environments that allow cross-origin reads.
+          response = await fetch(SOURCE_URL, { mode: "cors" });
+        }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const html = await response.text();
         const doc = new DOMParser().parseFromString(html, "text/html");
         const main = doc.querySelector("main") || doc.body;
         state.events = parseCalendarText(main.innerText);
-        state.loadedFrom = "live UO page";
+        state.loadedFrom = response.url.includes("/api/uo-calendar") ? "live UO page via local API" : "live UO page";
       } catch (error) {
         state.events = parseCalendarText(FALLBACK_TEXT);
         state.loadedFrom = "bundled fallback";
@@ -660,4 +666,3 @@ Second 5-Week/10-Week Final Exams: August 3 - 7
   </script>
 </body>
 </html>
-
