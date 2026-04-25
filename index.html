@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UO Academic Calendar Grid</title>
+  <style>
+    :root {
+      --uo-green: #154733;
+      --uo-yellow: #fee123;
+      --ink: #1f2933;
+      --muted: #6b7280;
+      --line: #d7dce2;
+      --paper: #ffffff;
+      --soft: #f5f7f6;
+      --event: #e6f2ed;
+      --event-law: #fff4c2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: #eef2f1;
+    }
+
+    header {
+      background: var(--uo-green);
+      color: white;
+      padding: 1rem clamp(1rem, 4vw, 2rem);
+      border-bottom: 6px solid var(--uo-yellow);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 4vw, 2.25rem);
+      letter-spacing: -0.03em;
+    }
+
+    header p {
+      margin: 0.35rem 0 0;
+      max-width: 70rem;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: end;
+      padding: 1rem clamp(1rem, 4vw, 2rem);
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    label {
+      display: grid;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    select, button {
+      font: inherit;
+      border: 1px solid var(--line);
+      border-radius: 0.65rem;
+      padding: 0.55rem 0.75rem;
+      background: white;
+      color: var(--ink);
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 750;
+      border-color: var(--uo-green);
+    }
+
+    button.primary {
+      background: var(--uo-green);
+      color: white;
+    }
+
+    main {
+      padding: 1rem clamp(1rem, 4vw, 2rem) 3rem;
+    }
+
+    .status {
+      margin: 0 0 1rem;
+      padding: 0.75rem 1rem;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 0.85rem;
+      color: var(--muted);
+    }
+
+    .months {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+      gap: 1rem;
+    }
+
+    .month {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      overflow: hidden;
+      break-inside: avoid;
+      box-shadow: 0 10px 25px rgba(21, 71, 51, 0.08);
+    }
+
+    .month h2 {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      background: var(--soft);
+      border-bottom: 1px solid var(--line);
+      font-size: 1.1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    .dow {
+      padding: 0.4rem 0.25rem;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .day {
+      min-height: 6.5rem;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 0.35rem;
+      background: white;
+    }
+
+    .day:nth-child(7n) { border-right: 0; }
+
+    .day.empty {
+      background: #fafafa;
+    }
+
+    .date-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.5rem;
+      height: 1.5rem;
+      font-size: 0.8rem;
+      font-weight: 800;
+      border-radius: 999px;
+    }
+
+    .today .date-number {
+      background: var(--uo-green);
+      color: white;
+    }
+
+    .event {
+      margin-top: 0.25rem;
+      padding: 0.28rem 0.35rem;
+      border-radius: 0.4rem;
+      background: var(--event);
+      border-left: 3px solid var(--uo-green);
+      font-size: 0.72rem;
+      line-height: 1.2;
+    }
+
+    .event.law {
+      background: var(--event-law);
+      border-left-color: #9a6b00;
+    }
+
+    .event small {
+      display: block;
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 0.8rem;
+      height: 0.8rem;
+      margin-right: 0.35rem;
+      border-radius: 0.2rem;
+      vertical-align: -0.1rem;
+      background: var(--event);
+      border-left: 3px solid var(--uo-green);
+    }
+
+    .legend .law::before {
+      background: var(--event-law);
+      border-left-color: #9a6b00;
+    }
+
+    @media print {
+      @page { size: landscape; margin: 0.35in; }
+      body { background: white; }
+      header, .toolbar, .status, .legend { display: none !important; }
+      main { padding: 0; }
+      .months {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.15in;
+      }
+      .month {
+        box-shadow: none;
+        border-radius: 0;
+      }
+      .month h2 {
+        padding: 0.18in 0.12in;
+        font-size: 11pt;
+      }
+      .dow { font-size: 7pt; padding: 0.05in; }
+      .day { min-height: 0.82in; padding: 0.04in; }
+      .date-number { font-size: 7pt; min-width: auto; height: auto; }
+      .event { font-size: 6.5pt; padding: 0.03in; margin-top: 0.025in; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>University of Oregon Academic Calendar</h1>
+    <p>Printable month-grid view generated from the UO Catalog academic calendar page.</p>
+  </header>
+
+  <section class="toolbar" aria-label="Calendar controls">
+    <label>
+      Calendar
+      <select id="calendarType">
+        <option value="term">Term-based academic calendar</option>
+        <option value="law">Semester-based law school calendar</option>
+        <option value="all">Both calendars</option>
+      </select>
+    </label>
+    <label>
+      Start month
+      <select id="startMonth"></select>
+    </label>
+    <label>
+      Months shown
+      <select id="monthCount">
+        <option>3</option>
+        <option selected>6</option>
+        <option>9</option>
+        <option>12</option>
+        <option>18</option>
+      </select>
+    </label>
+    <button id="reload">Reload from UO page</button>
+    <button class="primary" onclick="window.print()">Print</button>
+  </section>
+
+  <main>
+    <p id="status" class="status">Loading calendar…</p>
+    <section id="months" class="months" aria-live="polite"></section>
+    <p class="legend"><span>Term calendar</span><span class="law">Law school calendar</span></p>
+  </main>
+
+  <script>
+    const SOURCE_URL = "https://catalog.uoregon.edu/calendar/";
+
+    // Fallback reflects the 2025-2026 catalog text visible on the UO page when this was built.
+    // The app still tries to fetch SOURCE_URL first. If the browser blocks cross-origin access,
+    // the fallback keeps the printable calendar usable.
+    const FALLBACK_TEXT = `
+Term-Based Academic Calendar
+Fall Term 2025
+Initial registration: May 19 - 29
+Classes begin: September 29
+Last day to drop courses without recorded "W": October 4
+Last day to register or add courses: October 6
+Veterans Day holiday: November 11
+Thanksgiving vacation: November 27 - 28
+Fall term final examinations: December 8 - 12
+Winter vacation: December 13 - January 4
+Winter 2026
+Initial registration: November 17 - 26
+Classes begin: January 5
+Last day to drop courses without recorded "W": January 10
+Last day to register or add courses: January 12
+Martin Luther King Jr. Day holiday: January 19
+Winter term final examinations: March 16 - 20
+Spring vacation: March 21 - 29
+Spring 2026
+Initial registration: February 23 - March 4
+Classes begin: March 30
+Last day to drop courses without recorded "W": April 4
+Last day to register or add courses: April 6
+Memorial Day holiday: May 25
+Spring term final examinations: June 8 - 12
+Commencement ceremony: June 15
+Juneteenth holiday: June 19
+Summer Session 2026
+Initial registration: May 4 - 8
+Juneteenth holiday: June 19
+Classes begin: June 22
+Independence Day holiday: July 3
+Eight-week session ends: August 14
+Labor Day holiday: September 7
+Twelve-week session ends: September 11
+Fall Term 2026
+Initial registration: May 18 - 28
+Classes begin: September 28
+Last day to drop courses without recorded "W": October 3
+Last day to register or add courses: October 5
+Veterans Day holiday: November 11
+Thanksgiving vacation: November 26 - 27
+Fall term final examinations: December 7 - 11
+Winter vacation: December 12 - January 3
+Semester-Based Law School Academic Calendar
+Fall 2025 & Spring 2026 Semester Registration: April 16, 2025
+Fall 2026 & Spring 2027 Semester Registration: April 15, 2026
+Fall Semester 2025
+Classes Begin: August 25
+Last day to drop courses without recorded "W": September 2
+Last day to register or add courses: September 4
+Veterans Day holiday: November 11
+Thanksgiving vacation: November 27 - 28
+Semester examinations: December 9 - 18
+Spring Semester 2026
+Classes begin: January 12
+Martin Luther King Jr. Day holiday: January 19
+Last day to drop courses without recorded "W": January 20
+Last day to register or add courses: January 22
+Spring Vacation: March 21 - 29
+Semester examinations: April 30 - May 11
+Commencement: May 16
+Summer Semester 2026
+Registration: April 8
+Classes begin: May 26
+Juneteenth holiday: June 19
+Independence Day holiday: July 3
+First 5-Week Final Exams: June 29 - July 2
+Second 5-Week/10-Week Final Exams: August 3 - 7
+`;
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const shortDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const state = { events: [], loadedFrom: "fallback" };
+
+    function monthIndex(name) {
+      return monthNames.findIndex(m => m.toLowerCase() === name.toLowerCase());
+    }
+
+    function dateKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function addDays(date, days) {
+      const copy = new Date(date);
+      copy.setDate(copy.getDate() + days);
+      return copy;
+    }
+
+    function expandRange(start, end) {
+      const days = [];
+      for (let d = new Date(start); d <= end; d = addDays(d, 1)) {
+        days.push(new Date(d));
+      }
+      return days;
+    }
+
+    function inferYear(monthName, explicitYear, currentTermYear) {
+      if (explicitYear) return Number(explicitYear);
+      const m = monthIndex(monthName);
+      if (currentTermYear && m >= 0) {
+        // Academic terms commonly cross a calendar year boundary.
+        // For Fall Term 2025, January dates in winter vacation belong to 2026.
+        if (m <= 2 && /Fall/i.test(currentTermYear.label)) return currentTermYear.year + 1;
+        return currentTermYear.year;
+      }
+      return new Date().getFullYear();
+    }
+
+    function parseDateRange(raw, context) {
+      // Supports: "May 19 - 29", "December 13 - January 4", "April 16, 2025".
+      const datePattern = /([A-Z][a-z]+)\s+(\d{1,2})(?:,\s*(\d{4}))?/g;
+      const parts = [...raw.matchAll(datePattern)];
+      if (!parts.length) return [];
+
+      const first = parts[0];
+      const startYear = inferYear(first[1], first[3], context);
+      let start = new Date(startYear, monthIndex(first[1]), Number(first[2]));
+      let end = new Date(start);
+
+      if (parts[1]) {
+        const second = parts[1];
+        const endYear = inferYear(second[1], second[3], context);
+        end = new Date(endYear, monthIndex(second[1]), Number(second[2]));
+      } else {
+        const sameMonthRange = raw.match(/([A-Z][a-z]+)\s+(\d{1,2})(?:,\s*\d{4})?\s*-\s*(\d{1,2})/);
+        if (sameMonthRange) {
+          end = new Date(startYear, monthIndex(sameMonthRange[1]), Number(sameMonthRange[3]));
+        }
+      }
+
+      if (end < start) end.setFullYear(end.getFullYear() + 1);
+      return expandRange(start, end);
+    }
+
+    function parseCalendarText(text) {
+      const lines = text
+        .split(/\n+/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const events = [];
+      let section = "term";
+      let termContext = null;
+
+      for (const line of lines) {
+        if (/^Term-Based Academic Calendar/i.test(line)) {
+          section = "term";
+          continue;
+        }
+        if (/^Semester-Based Law School Academic Calendar/i.test(line)) {
+          section = "law";
+          continue;
+        }
+
+        const termMatch = line.match(/^(Fall Term|Fall Semester|Winter|Spring|Summer Session|Summer Semester|Spring Semester)\s+(\d{4})/i);
+        if (termMatch) {
+          termContext = { label: termMatch[1], year: Number(termMatch[2]) };
+          continue;
+        }
+
+        const singleLineRegistration = line.match(/^(Fall \d{4} & Spring \d{4} Semester Registration):\s*(.+)$/i);
+        const normalEvent = line.match(/^(.+?):\s*(.+)$/);
+        const match = singleLineRegistration || normalEvent;
+        if (!match || !termContext && !singleLineRegistration) continue;
+
+        const title = match[1].trim();
+        const rawDate = match[2].trim();
+        const dates = parseDateRange(rawDate, termContext);
+        for (const date of dates) {
+          events.push({
+            date: dateKey(date),
+            title,
+            rawDate,
+            type: section,
+            term: termContext?.label || "Law registration"
+          });
+        }
+      }
+
+      return events.sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+    }
+
+    async function loadCalendar(forceFallback = false) {
+      const status = document.getElementById("status");
+      status.textContent = "Loading UO calendar…";
+
+      try {
+        if (forceFallback) throw new Error("Using bundled fallback by request.");
+        const response = await fetch(SOURCE_URL, { mode: "cors" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const main = doc.querySelector("main") || doc.body;
+        state.events = parseCalendarText(main.innerText);
+        state.loadedFrom = "live UO page";
+      } catch (error) {
+        state.events = parseCalendarText(FALLBACK_TEXT);
+        state.loadedFrom = "bundled fallback";
+        console.warn("Could not fetch live UO calendar; using fallback.", error);
+      }
+
+      populateStartMonths();
+      render();
+    }
+
+    function populateStartMonths() {
+      const select = document.getElementById("startMonth");
+      const existing = select.value;
+      const uniqueMonths = [...new Set(state.events.map(e => e.date.slice(0, 7)))].sort();
+      select.innerHTML = uniqueMonths.map(value => {
+        const [year, month] = value.split("-").map(Number);
+        const label = `${monthNames[month - 1]} ${year}`;
+        return `<option value="${value}">${label}</option>`;
+      }).join("");
+
+      const todayMonth = dateKey(new Date()).slice(0, 7);
+      select.value = existing && uniqueMonths.includes(existing)
+        ? existing
+        : uniqueMonths.includes(todayMonth)
+          ? todayMonth
+          : uniqueMonths[0];
+    }
+
+    function eventsForDay(key) {
+      const type = document.getElementById("calendarType").value;
+      return state.events.filter(event => event.date === key && (type === "all" || event.type === type));
+    }
+
+    function renderMonth(year, month) {
+      const first = new Date(year, month, 1);
+      const last = new Date(year, month + 1, 0);
+      const cells = [];
+
+      for (let i = 0; i < first.getDay(); i++) {
+        cells.push(`<div class="day empty" aria-hidden="true"></div>`);
+      }
+
+      const today = dateKey(new Date());
+      for (let day = 1; day <= last.getDate(); day++) {
+        const date = new Date(year, month, day);
+        const key = dateKey(date);
+        const dayEvents = eventsForDay(key);
+        const eventHtml = dayEvents.map(event => `
+          <div class="event ${event.type === "law" ? "law" : ""}">
+            <small>${event.term}</small>${event.title}
+          </div>
+        `).join("");
+
+        cells.push(`
+          <div class="day ${key === today ? "today" : ""}">
+            <span class="date-number">${day}</span>
+            ${eventHtml}
+          </div>
+        `);
+      }
+
+      return `
+        <article class="month">
+          <h2>${monthNames[month]} ${year}</h2>
+          <div class="grid">
+            ${shortDays.map(day => `<div class="dow">${day}</div>`).join("")}
+            ${cells.join("")}
+          </div>
+        </article>
+      `;
+    }
+
+    function render() {
+      const container = document.getElementById("months");
+      const status = document.getElementById("status");
+      const [startYear, startMonthNum] = document.getElementById("startMonth").value.split("-").map(Number);
+      const count = Number(document.getElementById("monthCount").value);
+      const selectedType = document.getElementById("calendarType").value;
+      const shownEvents = state.events.filter(event => selectedType === "all" || event.type === selectedType).length;
+
+      const html = [];
+      for (let i = 0; i < count; i++) {
+        const date = new Date(startYear, startMonthNum - 1 + i, 1);
+        html.push(renderMonth(date.getFullYear(), date.getMonth()));
+      }
+      container.innerHTML = html.join("");
+      status.textContent = `Showing ${shownEvents} dated calendar entries. Data source: ${state.loadedFrom}.`;
+    }
+
+    document.getElementById("calendarType").addEventListener("change", render);
+    document.getElementById("startMonth").addEventListener("change", render);
+    document.getElementById("monthCount").addEventListener("change", render);
+    document.getElementById("reload").addEventListener("click", () => loadCalendar(false));
+
+    loadCalendar();
+  </script>
+</body>
+</html>
