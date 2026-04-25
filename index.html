@@ -358,7 +358,7 @@
 
   <script>
     const SOURCE_URL = "https://catalog.uoregon.edu/calendar/";
-    const API_URL = "/Api/Uo-calendar";
+    const API_URL = "/api/uo-calendar";
 
     // Fallback reflects the 2025-2026 catalog text visible on the UO page when this was built.
     // The app still tries to fetch SOURCE_URL first. If the browser blocks cross-origin access,
@@ -554,24 +554,41 @@ Second 5-Week/10-Week Final Exams: August 3 - 7
       const status = document.getElementById("status");
       status.textContent = "Loading UO calendar…";
 
+      const failures = [];
+
       try {
         if (forceFallback) throw new Error("Using bundled fallback by request.");
-        let response = await fetch(API_URL);
-        if (!response.ok) {
+
+        let html = "";
+        let sourceLabel = "";
+
+        try {
+          const apiResponse = await fetch(API_URL, { cache: "no-store" });
+          if (!apiResponse.ok) throw new Error(`API returned HTTP ${apiResponse.status}`);
+          html = await apiResponse.text();
+          sourceLabel = "live UO page via local API";
+        } catch (apiError) {
+          failures.push(`/api/uo-calendar failed: ${apiError.message}`);
+
           // This direct fetch may be blocked by CORS in a browser, but it is useful
           // while testing in environments that allow cross-origin reads.
-          response = await fetch(SOURCE_URL, { mode: "cors" });
+          const directResponse = await fetch(SOURCE_URL, { mode: "cors", cache: "no-store" });
+          if (!directResponse.ok) throw new Error(`Direct UO fetch returned HTTP ${directResponse.status}`);
+          html = await directResponse.text();
+          sourceLabel = "live UO page via direct browser fetch";
         }
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const html = await response.text();
+
         const doc = new DOMParser().parseFromString(html, "text/html");
         const main = doc.querySelector("main") || doc.body;
-        state.events = parseCalendarText(main.innerText);
-        state.loadedFrom = response.url.includes("/api/uo-calendar") ? "live UO page via local API" : "live UO page";
+        const parsedEvents = parseCalendarText(main.innerText);
+        if (!parsedEvents.length) throw new Error("Fetched page, but no calendar events could be parsed.");
+
+        state.events = parsedEvents;
+        state.loadedFrom = sourceLabel;
       } catch (error) {
         state.events = parseCalendarText(FALLBACK_TEXT);
-        state.loadedFrom = "bundled fallback";
-        console.warn("Could not fetch live UO calendar; using fallback.", error);
+        state.loadedFrom = `bundled fallback (${[...failures, error.message].join("; ")})`;
+        console.warn("Could not fetch live UO calendar; using fallback.", { failures, error });
       }
 
       populateStartMonths();
